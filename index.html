@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledger Design System · Storybook</title>
+<!-- Lucide UMD — 使用 unpkg 官方 CDN，版本鎖定在 0.454.0 (v1 前最後有 UMD 的穩定版) -->
+<script src="https://unpkg.com/lucide@0.454.0/dist/umd/lucide.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+:root {
+  --green-50:#ebfef6;  --green-100:#d0fbe8; --green-200:#a4f6d6;
+  --green-300:#6aebc1; --green-400:#2fd8a6; --green-500:#0abf8f;
+  --green-600:#00b287; --green-700:#007c62; --green-900:#045041;
+  --yellow-50:#fffbea;  --yellow-100:#fff2c5; --yellow-200:#ffe685;
+  --yellow-300:#ffd246; --yellow-400:#ffbd1b; --yellow-500:#ff9900;
+  --yellow-600:#e27200; --yellow-700:#bb4d02; --yellow-900:#7c310b;
+  --gray-50:#f6f6f6;   --gray-100:#e7e7e7; --gray-200:#d1d1d1;
+  --gray-300:#b0b0b0;  --gray-400:#888888; --gray-500:#6d6d6d;
+  --gray-600:#5d5d5d;  --gray-700:#4f4f4f; --gray-950:#1a1a1a;
+  --error-50:#fdf3f3;  --error-100:#fce4e4; --error-200:#f9cfcf;
+  --error-500:#e05252; --error-600:#cc3636;
+  --success-50:#f1fcf3; --success-500:#2cbb53;
+  --blue-500:#3893f9;  --purple-500:#6383f1;
+  --font:"Noto Sans TC","PingFang TC",sans-serif;
+  --r-xxs:4px; --r-xs:8px; --r-s:12px; --r-m:16px;
+  --r-l:20px;  --r-xl:24px; --r-rounded:1000px;
+}
+body { font-family:var(--font); background:#F5F5F2; color:var(--gray-950); display:flex; min-height:100vh; font-size:14px; }
+
+/* ── Sidebar ── */
+#sidebar {
+  width:214px; background:#fff; border-right:1px solid var(--gray-100);
+  padding:24px 0; flex-shrink:0; position:sticky; top:0; height:100vh; overflow-y:auto;
+}
+.sb-brand { padding:0 20px 20px; }
+.sb-tag  { font-size:9px; color:var(--green-500); letter-spacing:3px; font-weight:700; text-transform:uppercase; margin-bottom:4px; }
+.sb-name { font-size:15px; font-weight:900; color:var(--gray-950); }
+.sb-ver  { font-size:10px; color:var(--gray-300); margin-top:2px; }
+.sb-hr   { height:1px; background:var(--gray-100); margin-bottom:12px; }
+.sb-btn  {
+  width:100%; text-align:left; padding:9px 20px; background:none;
+  border:none; border-left:3px solid transparent; cursor:pointer;
+  font-family:var(--font); font-size:13px; color:var(--gray-600); font-weight:500;
+  display:flex; align-items:center; gap:8px; transition:all .15s;
+}
+.sb-btn:hover { color:var(--green-600); background:var(--green-50); border-left-color:var(--green-400); }
+.sb-btn svg { color:var(--gray-300); width:13px; height:13px; }
+
+/* ── Main ── */
+#main { flex:1; overflow-y:auto; padding:40px 48px 80px; }
+
+/* ── Section ── */
+.sec { margin-bottom:28px; scroll-margin-top:24px; }
+.sec-row  { display:flex; align-items:baseline; gap:10px; margin-bottom:4px; }
+.sec-no   { font-size:9px; font-weight:700; letter-spacing:3px; color:var(--green-500); text-transform:uppercase; }
+.sec-h2   { font-size:22px; font-weight:900; color:var(--gray-950); letter-spacing:-.5px; }
+.sec-desc { font-size:12px; color:var(--gray-400); line-height:1.6; }
+
+/* ── Cards ── */
+.card     { background:#fff; border-radius:16px; padding:28px 32px; box-shadow:0 2px 12px rgba(0,0,0,.06); margin-bottom:16px; }
+.card-2   { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+
+/* ── Helpers ── */
+.row      { margin-bottom:28px; }
+.row-lbl  { font-size:9px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:var(--gray-300); margin-bottom:14px; }
+.row-i    { display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+.col      { display:flex; flex-direction:column; align-items:center; gap:8px; }
+.col-c    { font-size:8px; color:var(--gray-300); font-family:monospace; }
+.hr       { height:1px; background:var(--gray-50); margin:4px 0 24px; }
+.chips    { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+.chip     { display:inline-flex; align-items:center; gap:6px; background:var(--gray-50); border-radius:6px; padding:4px 10px; font-size:9px; font-family:monospace; }
+.chip-dot { width:8px; height:8px; border-radius:2px; border:1px solid rgba(0,0,0,.08); flex-shrink:0; }
+.chip-n   { color:var(--green-500); }
+.chip-h   { color:var(--gray-300); }
+
+/* ══ PRIMARY BUTTON ══
+   padding: 8px 16px  ← corrected
+   radius:  1000px
+   font:    14px/700 */
+.btn-p {
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  padding:8px 16px; border-radius:var(--r-rounded);
+  font-family:var(--font); font-size:14px; font-weight:700;
+  border:none; cursor:pointer; transition:background .15s, box-shadow .15s;
+  white-space:nowrap; line-height:1.4;
+}
+.btn-p-d  { background:var(--green-500); color:#fff; box-shadow:0 2px 8px rgba(10,191,143,.28); }
+.btn-p-d:hover  { background:var(--green-700); }
+.btn-p-d:active { background:var(--green-900); }
+.btn-p-h  { background:var(--green-700); color:#fff; }
+.btn-p-pr { background:var(--green-900); color:#fff; }
+.btn-p-di { background:var(--green-500); color:#fff; opacity:.3; cursor:not-allowed; pointer-events:none; }
+
+/* ══ SECONDARY BUTTON ══ */
+.btn-s {
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  padding:8px 16px; border-radius:var(--r-rounded);
+  font-family:var(--font); font-size:14px; font-weight:700;
+  border:none; cursor:pointer; transition:background .15s, box-shadow .15s;
+  white-space:nowrap; line-height:1.4;
+}
+.btn-s-d  { background:var(--yellow-500); color:#fff; box-shadow:0 2px 8px rgba(255,153,0,.26); }
+.btn-s-d:hover  { background:var(--yellow-700); }
+.btn-s-d:active { background:var(--yellow-900); }
+.btn-s-h  { background:var(--yellow-700); color:#fff; }
+.btn-s-pr { background:var(--yellow-900); color:#fff; }
+.btn-s-di { background:var(--yellow-500); color:#fff; opacity:.3; cursor:not-allowed; pointer-events:none; }
+
+/* ══ OUTLINE BUTTON ══ */
+.btn-op {
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  padding:6px 14px; border-radius:var(--r-rounded);
+  border:2px solid var(--green-600);
+  font-family:var(--font); font-size:14px; font-weight:700;
+  background:#fff; color:var(--green-600);
+  cursor:pointer; transition:background .15s; white-space:nowrap; line-height:1.4;
+}
+.btn-op:hover  { background:var(--green-50); }
+.btn-op:active { background:var(--green-100); }
+.btn-op-h  { background:var(--green-50); }
+.btn-op-di { opacity:.4; cursor:not-allowed; pointer-events:none; }
+.btn-os {
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  padding:6px 14px; border-radius:var(--r-rounded);
+  border:2px solid var(--yellow-600);
+  font-family:var(--font); font-size:14px; font-weight:700;
+  background:#fff; color:var(--yellow-600);
+  cursor:pointer; transition:background .15s; white-space:nowrap; line-height:1.4;
+}
+.btn-os:hover  { background:var(--yellow-50); }
+.btn-os-di { opacity:.4; cursor:not-allowed; pointer-events:none; }
+
+/* ══ TEXT BUTTON ══ */
+.btn-tp {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:4px 6px; border-radius:var(--r-xs);
+  background:transparent; color:var(--green-500);
+  border:none; font-family:var(--font); font-size:14px; font-weight:700;
+  cursor:pointer; transition:color .15s, background .15s; white-space:nowrap;
+}
+.btn-tp:hover  { color:var(--green-700); background:rgba(10,191,143,.08); }
+.btn-tp-h  { color:var(--green-700); background:rgba(10,191,143,.08); }
+.btn-tp-di { opacity:.3; cursor:not-allowed; pointer-events:none; }
+.btn-ts {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:4px 6px; border-radius:var(--r-xs);
+  background:transparent; color:var(--gray-700);
+  border:none; font-family:var(--font); font-size:14px; font-weight:700;
+  cursor:pointer; transition:color .15s, background .15s; white-space:nowrap;
+}
+.btn-ts:hover  { color:var(--gray-950); background:rgba(0,0,0,.04); }
+.btn-ts-di { opacity:.3; cursor:not-allowed; pointer-events:none; }
+
+/* ══ ICON BUTTON ══
+   size: 36px default
+   radius: 1000px */
+.ib {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:36px; height:36px; border-radius:var(--r-rounded); border:none;
+  cursor:pointer; transition:background .15s, box-shadow .15s; flex-shrink:0;
+}
+.ib svg { width:18px; height:18px; }
+.ib-sm  { width:32px; height:32px; }
+.ib-sm svg { width:15px; height:15px; }
+.ib-lg  { width:44px; height:44px; }
+.ib-lg svg { width:20px; height:20px; }
+.ib-1   { background:#fff; color:var(--gray-950); border:1.5px solid var(--gray-200); box-shadow:0 1px 3px rgba(0,0,0,.08); }
+.ib-1:hover   { background:var(--gray-100); }
+.ib-1:active  { background:var(--gray-200); }
+.ib-2   { background:var(--green-500); color:#fff; box-shadow:0 2px 8px rgba(10,191,143,.3); }
+.ib-2:hover   { background:var(--green-700); }
+.ib-2:active  { background:var(--green-900); }
+.ib-3   { background:var(--yellow-500); color:#fff; box-shadow:0 2px 8px rgba(255,153,0,.28); }
+.ib-3:hover   { background:var(--yellow-700); }
+.ib-3:active  { background:var(--yellow-900); }
+.ib-di  { opacity:.3; cursor:not-allowed; pointer-events:none; }
+.ib-w   { display:flex; flex-direction:column; align-items:center; gap:5px; }
+.ib-lbl { font-size:8px; color:var(--gray-400); font-family:monospace; }
+
+/* ══ LABEL ══
+   sm: 2px 8px   md: 4px 10px
+   radius: 1000px  font: 10-11px/700 */
+.lbl    { display:inline-flex; align-items:center; gap:4px; font-family:var(--font); font-weight:700; border-radius:var(--r-rounded); white-space:nowrap; }
+.lbl svg { width:10px; height:10px; }
+.lbl-sm { padding:2px 8px; font-size:10px; }
+.lbl-md { padding:4px 10px; font-size:11px; }
+.lbl-gd  { background:var(--green-500);  color:#fff; }
+.lbl-yd  { background:var(--yellow-500); color:#fff; }
+.lbl-bd  { background:var(--blue-500);   color:#fff; }
+.lbl-pd  { background:var(--purple-500); color:#fff; }
+.lbl-rd  { background:var(--error-500);  color:#fff; }
+.lbl-grl { background:var(--gray-500);   color:#fff; }
+.lbl-gl  { background:var(--green-100);  color:var(--green-600); }
+.lbl-yl  { background:var(--yellow-100); color:var(--yellow-600); }
+.lbl-bl  { background:#daedff;           color:var(--blue-500); }
+.lbl-pl  { background:#e0e7ff;           color:var(--purple-500); }
+.lbl-rl  { background:var(--error-100);  color:var(--error-500); }
+
+/* ── Nav Tab ── */
+.tab-track { display:inline-flex; background:var(--gray-100); border-radius:var(--r-rounded); padding:3px; gap:2px; }
+.tab-btn   { padding:7px 18px; border-radius:var(--r-rounded); border:none; background:transparent; color:var(--gray-400); font-weight:500; font-size:14px; font-family:var(--font); cursor:pointer; transition:all .2s; white-space:nowrap; }
+.tab-btn.on { background:#fff; color:var(--gray-950); font-weight:700; box-shadow:0 1px 4px rgba(0,0,0,.10); }
+
+/* ── Bottom Nav ── */
+.bnav    { background:#fff; border-top:1px solid var(--gray-100); display:flex; padding:8px 0 16px; border-radius:0 0 20px 20px; box-shadow:0 -4px 20px rgba(0,0,0,.06); }
+.bn-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; cursor:pointer; padding:6px 0; }
+.bn-ico  { display:flex; color:var(--gray-300); transition:color .2s; }
+.bn-ico svg { width:22px; height:22px; }
+.bn-lbl  { font-size:10px; font-weight:400; color:var(--gray-300); font-family:var(--font); transition:color .2s; }
+.bn-dot  { width:16px; height:3px; border-radius:2px; background:var(--green-500); }
+.bn-item.on .bn-ico, .bn-item.on .bn-lbl { color:var(--green-500); }
+.bn-item.on .bn-lbl { font-weight:700; }
+
+/* ── Inputs ── */
+.inp   { border-radius:var(--r-s); border:1.5px solid; padding:10px 14px; display:flex; align-items:center; gap:8px; font-family:var(--font); font-size:14px; }
+.inp svg { width:15px; height:15px; flex-shrink:0; }
+.inp-ph  { color:var(--gray-300); }
+.inp-val { color:var(--gray-950); flex:1; }
+.inp-d   { border-color:var(--gray-950); background:var(--gray-50); }
+.inp-f   { border-color:var(--gray-950); background:var(--gray-100); border-width:2px; }
+.inp-e   { border-color:var(--green-400); background:var(--gray-50); }
+.inp-er  { border-color:var(--error-500); background:var(--error-50); }
+.amt-inp { border-radius:var(--r-s); border:2px solid; padding:10px 14px; display:flex; align-items:center; gap:8px; }
+.amt-inp svg { width:14px; height:14px; }
+.amt-v   { font-size:24px; font-weight:800; color:var(--gray-950); flex:1; }
+.amt-c   { font-size:12px; color:var(--gray-400); }
+
+/* ── Progress ── */
+.prog-w  { margin-bottom:12px; }
+.prog-hd { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; }
+.prog-l  { font-size:12px; display:flex; align-items:center; gap:5px; }
+.prog-l svg { width:12px; height:12px; }
+.prog-p  { font-size:11px; color:var(--gray-400); font-family:monospace; }
+.prog-t  { height:6px; border-radius:3px; overflow:hidden; }
+.prog-f  { height:100%; border-radius:3px; }
+.prop-b  { height:10px; display:flex; border-radius:5px; overflow:hidden; }
+.prop-le { display:flex; gap:16px; margin-top:8px; font-size:11px; color:var(--gray-500); }
+.prop-li { display:flex; align-items:center; gap:4px; }
+.prop-li svg { width:10px; height:10px; }
+
+/* ── Notification ── */
+.notif   { border:1px solid; border-radius:14px; padding:12px 14px; display:flex; gap:10px; margin-bottom:8px; }
+.notif-i { display:flex; flex-shrink:0; margin-top:1px; }
+.notif-i svg { width:17px; height:17px; }
+.notif-b { flex:1; }
+.notif-t { font-size:13px; font-weight:700; margin-bottom:2px; }
+.notif-d { font-size:12px; color:var(--gray-950); line-height:1.5; }
+.notif-a { font-size:10px; color:var(--gray-300); flex-shrink:0; }
+
+/* ── Swatches ── */
+.sw-g  { margin-bottom:20px; }
+.sw-gn { font-size:9px; font-weight:700; color:var(--gray-500); letter-spacing:2px; text-transform:uppercase; margin-bottom:8px; }
+.sw-r  { display:flex; gap:4px; flex-wrap:wrap; }
+.sw    { width:56px; text-align:center; }
+.sw-c  { height:40px; border-radius:8px; border:1px solid rgba(0,0,0,.06); margin-bottom:3px; }
+.sw-s  { font-size:9px; color:var(--gray-500); font-weight:600; }
+.sw-h  { font-size:8px; color:var(--gray-300); font-family:monospace; }
+
+/* ── Type ── */
+.type-r  { display:flex; align-items:baseline; gap:16px; padding:12px 0; border-bottom:1px solid var(--gray-50); }
+.type-t  { font-size:10px; color:var(--green-500); font-family:monospace; width:72px; flex-shrink:0; }
+.type-s  { color:var(--gray-950); line-height:1.2; flex:1; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.type-m  { font-size:10px; color:var(--gray-400); font-family:monospace; text-align:right; flex-shrink:0; }
+
+/* ── Spacing ── */
+.sp-r  { display:flex; align-items:center; gap:10px; margin-bottom:7px; }
+.sp-n  { font-size:9px; color:var(--green-500); font-family:monospace; width:48px; flex-shrink:0; }
+.sp-b  { height:16px; background:var(--green-400); border-radius:3px; min-width:3px; }
+.sp-v  { font-size:9px; color:var(--gray-400); }
+.r-g   { display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end; }
+.r-i   { text-align:center; }
+.r-b   { width:56px; height:56px; background:var(--green-100); border:2px solid var(--green-400); margin-bottom:5px; }
+.r-n   { font-size:8px; color:var(--green-500); font-family:monospace; display:block; }
+.r-v   { font-size:8px; color:var(--gray-300); }
+
+/* ── Icon palette ── */
+.ic-pal  { display:flex; gap:18px; flex-wrap:wrap; }
+.ic-item { display:flex; flex-direction:column; align-items:center; gap:4px; color:var(--gray-700); }
+.ic-item svg { width:20px; height:20px; }
+.ic-n    { font-size:8px; color:var(--gray-300); font-family:monospace; }
+
+/* ── Overview ── */
+.ov-g  { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
+.ov-c  { background:#fff; border-radius:14px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,.05); }
+.ov-d  { width:40px; height:40px; border-radius:10px; margin-bottom:10px; }
+.ov-n  { font-size:13px; font-weight:700; margin-bottom:3px; }
+.ov-t  { font-size:10px; color:var(--gray-400); font-family:monospace; }
+
+/* ── Real Usage ── */
+.use-g { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+.use-l { font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--gray-300); margin-bottom:12px; }
+.ob-c  { background:var(--gray-50); border-radius:16px; padding:24px; display:flex; flex-direction:column; gap:10px; }
+.sep   { display:flex; align-items:center; gap:8px; }
+.sep-l { flex:1; height:1px; background:var(--gray-200); }
+.sep-t { font-size:12px; color:var(--gray-300); white-space:nowrap; }
+.full  { width:100%; justify-content:center; }
+.tc    { text-align:center; }
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ── -->
+<div id="sidebar">
+  <div class="sb-brand">
+    <div class="sb-tag">LEDGER</div>
+    <div class="sb-name">Design System</div>
+    <div class="sb-ver">v2.0 · lucide.dev</div>
+  </div>
+  <div class="sb-hr"></div>
+  <button class="sb-btn" onclick="go('s00')"><i data-lucide="layers"></i>Overview</button>
+  <button class="sb-btn" onclick="go('s01')"><i data-lucide="palette"></i>Colors</button>
+  <button class="sb-btn" onclick="go('s02')"><i data-lucide="type"></i>Typography</button>
+  <button class="sb-btn" onclick="go('s03')"><i data-lucide="layout"></i>Spacing &amp; Radius</button>
+  <button class="sb-btn" onclick="go('s04')"><i data-lucide="mouse-pointer-click"></i>Primary Button</button>
+  <button class="sb-btn" onclick="go('s05')"><i data-lucide="circle-arrow-right"></i>Secondary Button</button>
+  <button class="sb-btn" onclick="go('s06')"><i data-lucide="circle"></i>Outline Button</button>
+  <button class="sb-btn" onclick="go('s07')"><i data-lucide="baseline"></i>Text Button</button>
+  <button class="sb-btn" onclick="go('s08')"><i data-lucide="grid-2x2"></i>Icon Button</button>
+  <button class="sb-btn" onclick="go('s09')"><i data-lucide="tag"></i>Label / Badge</button>
+  <button class="sb-btn" onclick="go('s10')"><i data-lucide="toggle-left"></i>Nav Tab</button>
+  <button class="sb-btn" onclick="go('s11')"><i data-lucide="navigation"></i>Bottom Nav</button>
+  <button class="sb-btn" onclick="go('s12')"><i data-lucide="edit-3"></i>Inputs</button>
+  <button class="sb-btn" onclick="go('s13')"><i data-lucide="trending-up"></i>Progress</button>
+  <button class="sb-btn" onclick="go('s14')"><i data-lucide="bell"></i>Notifications</button>
+  <button class="sb-btn" onclick="go('s15')"><i data-lucide="smartphone"></i>Real Usage</button>
+</div>
+
+<!-- ── MAIN ── -->
+<div id="main">
+
+<!-- 00 OVERVIEW -->
+<div class="sec" id="s00">
+  <div class="sec-row"><span class="sec-no">00</span><h2 class="sec-h2">Overview</h2></div>
+  <p class="sec-desc">Ledger Design System · Ref → Sys → Comp · Icons: lucide.dev</p>
+</div>
+<div class="ov-g">
+  <div class="ov-c"><div class="ov-d" style="background:#0abf8f;box-shadow:0 4px 12px rgba(10,191,143,.4)"></div><div class="ov-n">Primary Green</div><div class="ov-t">#0ABF8F · green-500</div></div>
+  <div class="ov-c"><div class="ov-d" style="background:#ff9900;box-shadow:0 4px 12px rgba(255,153,0,.4)"></div><div class="ov-n">Accent Yellow</div><div class="ov-t">#FF9900 · yellow-500</div></div>
+  <div class="ov-c"><div class="ov-d" style="background:#1a1a1a;box-shadow:0 4px 12px rgba(0,0,0,.3)"></div><div class="ov-n">Text Primary</div><div class="ov-t">#1A1A1A · gray-950</div></div>
+</div>
+<div class="card">
+  <div style="font-size:10px;font-weight:700;color:var(--green-600);margin-bottom:12px;letter-spacing:2px;text-transform:uppercase">Lucide Icon Palette · <a href="https://lucide.dev/icons/" target="_blank" style="color:var(--green-500);font-weight:400">lucide.dev/icons</a></div>
+  <div class="ic-pal">
+    <div class="ic-item"><i data-lucide="home"></i><span class="ic-n">home</span></div>
+    <div class="ic-item"><i data-lucide="bar-chart-2"></i><span class="ic-n">bar-chart-2</span></div>
+    <div class="ic-item"><i data-lucide="target"></i><span class="ic-n">target</span></div>
+    <div class="ic-item"><i data-lucide="bell"></i><span class="ic-n">bell</span></div>
+    <div class="ic-item"><i data-lucide="plus"></i><span class="ic-n">plus</span></div>
+    <div class="ic-item"><i data-lucide="check"></i><span class="ic-n">check</span></div>
+    <div class="ic-item"><i data-lucide="x"></i><span class="ic-n">x</span></div>
+    <div class="ic-item"><i data-lucide="search"></i><span class="ic-n">search</span></div>
+    <div class="ic-item"><i data-lucide="wallet"></i><span class="ic-n">wallet</span></div>
+    <div class="ic-item"><i data-lucide="trending-up"></i><span class="ic-n">trending-up</span></div>
+    <div class="ic-item"><i data-lucide="trending-down"></i><span class="ic-n">trending-down</span></div>
+    <div class="ic-item"><i data-lucide="shopping-bag"></i><span class="ic-n">shopping-bag</span></div>
+    <div class="ic-item"><i data-lucide="coffee"></i><span class="ic-n">coffee</span></div>
+    <div class="ic-item"><i data-lucide="car"></i><span class="ic-n">car</span></div>
+    <div class="ic-item"><i data-lucide="star"></i><span class="ic-n">star</span></div>
+    <div class="ic-item"><i data-lucide="calendar"></i><span class="ic-n">calendar</span></div>
+    <div class="ic-item"><i data-lucide="download"></i><span class="ic-n">download</span></div>
+    <div class="ic-item"><i data-lucide="share-2"></i><span class="ic-n">share-2</span></div>
+    <div class="ic-item"><i data-lucide="edit-2"></i><span class="ic-n">edit-2</span></div>
+    <div class="ic-item"><i data-lucide="filter"></i><span class="ic-n">filter</span></div>
+    <div class="ic-item"><i data-lucide="trash-2"></i><span class="ic-n">trash-2</span></div>
+    <div class="ic-item"><i data-lucide="lock"></i><span class="ic-n">lock</span></div>
+    <div class="ic-item"><i data-lucide="user"></i><span class="ic-n">user</span></div>
+    <div class="ic-item"><i data-lucide="heart"></i><span class="ic-n">heart</span></div>
+    <div class="ic-item"><i data-lucide="arrow-right"></i><span class="ic-n">arrow-right</span></div>
+    <div class="ic-item"><i data-lucide="chevron-right"></i><span class="ic-n">chevron-right</span></div>
+    <div class="ic-item"><i data-lucide="alert-circle"></i><span class="ic-n">alert-circle</span></div>
+    <div class="ic-item"><i data-lucide="check-circle"></i><span class="ic-n">check-circle</span></div>
+    <div class="ic-item"><i data-lucide="clipboard-list"></i><span class="ic-n">clipboard-list</span></div>
+    <div class="ic-item"><i data-lucide="settings"></i><span class="ic-n">settings</span></div>
+    <div class="ic-item"><i data-lucide="more-horizontal"></i><span class="ic-n">more-horizontal</span></div>
+    <div class="ic-item"><i data-lucide="eye"></i><span class="ic-n">eye</span></div>
+    <div class="ic-item"><i data-lucide="refresh-cw"></i><span class="ic-n">refresh-cw</span></div>
+    <div class="ic-item"><i data-lucide="info"></i><span class="ic-n">info</span></div>
+    <div class="ic-item"><i data-lucide="x-circle"></i><span class="ic-n">x-circle</span></div>
+    <div class="ic-item"><i data-lucide="bookmark"></i><span class="ic-n">bookmark</span></div>
+    <div class="ic-item"><i data-lucide="send"></i><span class="ic-n">send</span></div>
+    <div class="ic-item"><i data-lucide="chevron-left"></i><span class="ic-n">chevron-left</span></div>
+    <div class="ic-item"><i data-lucide="chevron-down"></i><span class="ic-n">chevron-down</span></div>
+    <div class="ic-item"><i data-lucide="map-pin"></i><span class="ic-n">map-pin</span></div>
+  </div>
+</div>
+
+<!-- 01 COLORS -->
+<div class="sec" id="s01">
+  <div class="sec-row"><span class="sec-no">01</span><h2 class="sec-h2">Color Palette</h2></div>
+  <p class="sec-desc">Reference Layer · 原始色階定義，禁止元件層直接引用</p>
+</div>
+<div class="card">
+  <div class="sw-g"><div class="sw-gn">Primary Green · ref-secondary-green</div><div class="sw-r">
+    <div class="sw"><div class="sw-c" style="background:#ebfef6"></div><div class="sw-s">50</div><div class="sw-h">#ebfef6</div></div>
+    <div class="sw"><div class="sw-c" style="background:#d0fbe8"></div><div class="sw-s">100</div><div class="sw-h">#d0fbe8</div></div>
+    <div class="sw"><div class="sw-c" style="background:#a4f6d6"></div><div class="sw-s">200</div><div class="sw-h">#a4f6d6</div></div>
+    <div class="sw"><div class="sw-c" style="background:#6aebc1"></div><div class="sw-s">300</div><div class="sw-h">#6aebc1</div></div>
+    <div class="sw"><div class="sw-c" style="background:#2fd8a6"></div><div class="sw-s">400</div><div class="sw-h">#2fd8a6</div></div>
+    <div class="sw" style="outline:3px solid #0abf8f;outline-offset:2px;border-radius:9px"><div class="sw-c" style="background:#0abf8f;border-radius:7px 7px 0 0"></div><div class="sw-s" style="color:#0abf8f">500★</div><div class="sw-h">#0abf8f</div></div>
+    <div class="sw"><div class="sw-c" style="background:#00b287"></div><div class="sw-s">600</div><div class="sw-h">#00b287</div></div>
+    <div class="sw"><div class="sw-c" style="background:#007c62"></div><div class="sw-s">700</div><div class="sw-h">#007c62</div></div>
+    <div class="sw"><div class="sw-c" style="background:#03624e"></div><div class="sw-s">800</div><div class="sw-h">#03624e</div></div>
+    <div class="sw"><div class="sw-c" style="background:#045041"></div><div class="sw-s">900</div><div class="sw-h">#045041</div></div>
+  </div></div>
+  <div class="sw-g"><div class="sw-gn">Accent Yellow · ref-acent-yellow</div><div class="sw-r">
+    <div class="sw"><div class="sw-c" style="background:#fffbea"></div><div class="sw-s">50</div><div class="sw-h">#fffbea</div></div>
+    <div class="sw"><div class="sw-c" style="background:#fff2c5"></div><div class="sw-s">100</div><div class="sw-h">#fff2c5</div></div>
+    <div class="sw"><div class="sw-c" style="background:#ffe685"></div><div class="sw-s">200</div><div class="sw-h">#ffe685</div></div>
+    <div class="sw"><div class="sw-c" style="background:#ffd246"></div><div class="sw-s">300</div><div class="sw-h">#ffd246</div></div>
+    <div class="sw"><div class="sw-c" style="background:#ffbd1b"></div><div class="sw-s">400</div><div class="sw-h">#ffbd1b</div></div>
+    <div class="sw" style="outline:3px solid #ff9900;outline-offset:2px;border-radius:9px"><div class="sw-c" style="background:#ff9900;border-radius:7px 7px 0 0"></div><div class="sw-s" style="color:#e27200">500★</div><div class="sw-h">#ff9900</div></div>
+    <div class="sw"><div class="sw-c" style="background:#e27200"></div><div class="sw-s">600</div><div class="sw-h">#e27200</div></div>
+    <div class="sw"><div class="sw-c" style="background:#bb4d02"></div><div class="sw-s">700</div><div class="sw-h">#bb4d02</div></div>
+    <div class="sw"><div class="sw-c" style="background:#983b08"></div><div class="sw-s">800</div><div class="sw-h">#983b08</div></div>
+    <div class="sw"><div class="sw-c" style="background:#7c310b"></div><div class="sw-s">900</div><div class="sw-h">#7c310b</div></div>
+  </div></div>
+  <div class="sw-g"><div class="sw-gn">Neutral Gray · ref-primary-grayscale</div><div class="sw-r">
+    <div class="sw"><div class="sw-c" style="background:#f6f6f6;border:1px solid #ddd"></div><div class="sw-s">50</div><div class="sw-h">#f6f6f6</div></div>
+    <div class="sw"><div class="sw-c" style="background:#e7e7e7"></div><div class="sw-s">100</div><div class="sw-h">#e7e7e7</div></div>
+    <div class="sw"><div class="sw-c" style="background:#d1d1d1"></div><div class="sw-s">200</div><div class="sw-h">#d1d1d1</div></div>
+    <div class="sw"><div class="sw-c" style="background:#b0b0b0"></div><div class="sw-s">300</div><div class="sw-h">#b0b0b0</div></div>
+    <div class="sw"><div class="sw-c" style="background:#888888"></div><div class="sw-s">400</div><div class="sw-h">#888888</div></div>
+    <div class="sw"><div class="sw-c" style="background:#6d6d6d"></div><div class="sw-s">500</div><div class="sw-h">#6d6d6d</div></div>
+    <div class="sw"><div class="sw-c" style="background:#5d5d5d"></div><div class="sw-s">600</div><div class="sw-h">#5d5d5d</div></div>
+    <div class="sw"><div class="sw-c" style="background:#4f4f4f"></div><div class="sw-s">700</div><div class="sw-h">#4f4f4f</div></div>
+    <div class="sw"><div class="sw-c" style="background:#3d3d3d"></div><div class="sw-s">900</div><div class="sw-h">#3d3d3d</div></div>
+    <div class="sw"><div class="sw-c" style="background:#1a1a1a"></div><div class="sw-s">950</div><div class="sw-h">#1a1a1a</div></div>
+  </div></div>
+  <div style="display:flex;gap:40px;flex-wrap:wrap">
+    <div class="sw-g"><div class="sw-gn">Success</div><div class="sw-r">
+      <div class="sw"><div class="sw-c" style="background:#f1fcf3"></div><div class="sw-s">50</div><div class="sw-h">#f1fcf3</div></div>
+      <div class="sw"><div class="sw-c" style="background:#2cbb53"></div><div class="sw-s">500</div><div class="sw-h">#2cbb53</div></div>
+    </div></div>
+    <div class="sw-g"><div class="sw-gn">Error</div><div class="sw-r">
+      <div class="sw"><div class="sw-c" style="background:#fdf3f3"></div><div class="sw-s">50</div><div class="sw-h">#fdf3f3</div></div>
+      <div class="sw"><div class="sw-c" style="background:#fce4e4"></div><div class="sw-s">100</div><div class="sw-h">#fce4e4</div></div>
+      <div class="sw"><div class="sw-c" style="background:#e05252"></div><div class="sw-s">500</div><div class="sw-h">#e05252</div></div>
+    </div></div>
+    <div class="sw-g"><div class="sw-gn">Category</div><div class="sw-r">
+      <div class="sw"><div class="sw-c" style="background:#3893f9"></div><div class="sw-s">Blue</div><div class="sw-h">#3893f9</div></div>
+      <div class="sw"><div class="sw-c" style="background:#6383f1"></div><div class="sw-s">Purple</div><div class="sw-h">#6383f1</div></div>
+    </div></div>
+  </div>
+</div>
+
+<!-- 02 TYPOGRAPHY -->
+<div class="sec" id="s02">
+  <div class="sec-row"><span class="sec-no">02</span><h2 class="sec-h2">Typography</h2></div>
+  <p class="sec-desc">Noto Sans TC · sys-typography-* · 8px–64px</p>
+</div>
+<div class="card">
+  <div class="type-r"><code class="type-t">display</code><div class="type-s" style="font-size:50px;font-weight:900">$4,320</div><div class="type-m">64px/76.8 · fw900</div></div>
+  <div class="type-r"><code class="type-t">h1</code><div class="type-s" style="font-size:38px;font-weight:800">財務健康報告</div><div class="type-m">48px/57.6 · fw800</div></div>
+  <div class="type-r"><code class="type-t">h2</code><div class="type-s" style="font-size:31px;font-weight:700">每月收支分析</div><div class="type-m">40px/48 · fw700</div></div>
+  <div class="type-r"><code class="type-t">h3</code><div class="type-s" style="font-size:25px;font-weight:700">本月支出趨勢</div><div class="type-m">32px/38.4 · fw700</div></div>
+  <div class="type-r"><code class="type-t">h4</code><div class="type-s" style="font-size:22px;font-weight:700">目標設定與追蹤</div><div class="type-m">28px/33.6 · fw700</div></div>
+  <div class="type-r"><code class="type-t">h5</code><div class="type-s" style="font-size:19px;font-weight:600">今日消費記錄</div><div class="type-m">24px/28.8 · fw600</div></div>
+  <div class="type-r"><code class="type-t">h6</code><div class="type-s" style="font-size:17px;font-weight:600">類別預算詳情</div><div class="type-m">22px/26.4 · fw600</div></div>
+  <div class="type-r"><code class="type-t">text-xl</code><div class="type-s" style="font-size:14px;font-weight:400">月結餘額與下月預測</div><div class="type-m">18px/21.6 · fw400</div></div>
+  <div class="type-r"><code class="type-t">text-lg</code><div class="type-s" style="font-size:13px;font-weight:400">消費紀錄列表，含商家與金額資訊</div><div class="type-m">16px/19.2 · fw400</div></div>
+  <div class="type-r"><code class="type-t">text-md</code><div class="type-s" style="font-size:11px;color:var(--gray-600)">交易明細說明文字，用於次要資訊展示</div><div class="type-m">14px/16.8 · fw400</div></div>
+  <div class="type-r"><code class="type-t">text-sm</code><div class="type-s" style="font-size:10px;color:var(--gray-400)">備註、輔助標籤、次要說明文字</div><div class="type-m">12px/14.4 · fw400</div></div>
+</div>
+
+<!-- 03 SPACING -->
+<div class="sec" id="s03">
+  <div class="sec-row"><span class="sec-no">03</span><h2 class="sec-h2">Spacing &amp; Radius</h2></div>
+  <p class="sec-desc">4px Grid · sys-spacing-* · sys-radius-*</p>
+</div>
+<div class="card-2">
+  <div class="card">
+    <div class="row-lbl" style="margin-bottom:12px">Spacing</div>
+    <div class="sp-r"><code class="sp-n">_tiny</code><div class="sp-b" style="width:4px"></div><span class="sp-v">2px</span></div>
+    <div class="sp-r"><code class="sp-n">_xxs</code><div class="sp-b" style="width:8px"></div><span class="sp-v">4px</span></div>
+    <div class="sp-r"><code class="sp-n">_xs</code><div class="sp-b" style="width:16px"></div><span class="sp-v">8px</span></div>
+    <div class="sp-r"><code class="sp-n">_sm</code><div class="sp-b" style="width:24px"></div><span class="sp-v">12px</span></div>
+    <div class="sp-r"><code class="sp-n">_md</code><div class="sp-b" style="width:32px"></div><span class="sp-v">16px</span></div>
+    <div class="sp-r"><code class="sp-n">_lg</code><div class="sp-b" style="width:40px"></div><span class="sp-v">20px</span></div>
+    <div class="sp-r"><code class="sp-n">_xl</code><div class="sp-b" style="width:48px"></div><span class="sp-v">24px</span></div>
+    <div class="sp-r"><code class="sp-n">_2xl</code><div class="sp-b" style="width:64px"></div><span class="sp-v">32px</span></div>
+    <div class="sp-r"><code class="sp-n">_3xl</code><div class="sp-b" style="width:80px"></div><span class="sp-v">40px</span></div>
+    <div class="sp-r"><code class="sp-n">_4xl</code><div class="sp-b" style="width:96px"></div><span class="sp-v">48px</span></div>
+    <div class="sp-r"><code class="sp-n">_5xl</code><div class="sp-b" style="width:112px"></div><span class="sp-v">56px</span></div>
+    <div class="sp-r"><code class="sp-n">_6xl</code><div class="sp-b" style="width:128px"></div><span class="sp-v">64px</span></div>
+  </div>
+  <div class="card">
+    <div class="row-lbl" style="margin-bottom:12px">Border Radius</div>
+    <div class="r-g">
+      <div class="r-i"><div class="r-b" style="border-radius:4px"></div><code class="r-n">xxs</code><span class="r-v">4px</span></div>
+      <div class="r-i"><div class="r-b" style="border-radius:8px"></div><code class="r-n">xs</code><span class="r-v">8px</span></div>
+      <div class="r-i"><div class="r-b" style="border-radius:12px"></div><code class="r-n">s</code><span class="r-v">12px</span></div>
+      <div class="r-i"><div class="r-b" style="border-radius:16px"></div><code class="r-n">m</code><span class="r-v">16px</span></div>
+      <div class="r-i"><div class="r-b" style="border-radius:20px"></div><code class="r-n">l</code><span class="r-v">20px</span></div>
+      <div class="r-i"><div class="r-b" style="border-radius:24px"></div><code class="r-n">xl</code><span class="r-v">24px</span></div>
+      <div class="r-i"><div class="r-b" style="border-radius:1000px"></div><code class="r-n">rounded</code><span class="r-v">full</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 04 PRIMARY BUTTON -->
+<div class="sec" id="s04">
+  <div class="sec-row"><span class="sec-no">04</span><h2 class="sec-h2">Primary Button</h2></div>
+  <p class="sec-desc">padding: 8px 16px · radius: 1000px · font: 14px/700 · Green 500→700→900</p>
+</div>
+<div class="card">
+  <div class="row"><div class="row-lbl">States (hover me!)</div>
+    <div class="row-i">
+      <div class="col"><button class="btn-p btn-p-d">立即開始</button><code class="col-c">default · #0ABF8F</code></div>
+      <div class="col"><button class="btn-p btn-p-h">立即開始</button><code class="col-c">hover · #007C62</code></div>
+      <div class="col"><button class="btn-p btn-p-pr">立即開始</button><code class="col-c">pressed · #045041</code></div>
+      <div class="col"><button class="btn-p btn-p-di">立即開始</button><code class="col-c">disabled · 30%</code></div>
+    </div>
+  </div>
+  <div class="hr"></div>
+  <div class="row"><div class="row-lbl">With Lucide Icons</div>
+    <div class="row-i">
+      <button class="btn-p btn-p-d"><i data-lucide="chevron-left"></i>返回</button>
+      <button class="btn-p btn-p-d">下一步<i data-lucide="arrow-right"></i></button>
+      <button class="btn-p btn-p-d"><i data-lucide="check"></i>確認建立</button>
+      <button class="btn-p btn-p-d"><i data-lucide="plus"></i>新增目標</button>
+      <button class="btn-p btn-p-d"><i data-lucide="download"></i>匯出<i data-lucide="chevron-down"></i></button>
+    </div>
+  </div>
+  <div class="hr"></div>
+  <div class="row"><div class="row-lbl">Full Width</div>
+    <div style="max-width:320px"><button class="btn-p btn-p-d full">建立我的第一個目標</button></div>
+  </div>
+  <div class="chips">
+    <div class="chip"><div class="chip-dot" style="background:#e7e7e7"></div><span class="chip-n">padding</span><span class="chip-h">8px 16px</span></div>
+    <div class="chip"><div class="chip-dot" style="background:#0abf8f"></div><span class="chip-n">default</span><span class="chip-h">#0ABF8F</span></div>
+    <div class="chip"><div class="chip-dot" style="background:#007c62"></div><span class="chip-n">hover</span><span class="chip-h">#007C62</span></div>
+    <div class="chip"><div class="chip-dot" style="background:#045041"></div><span class="chip-n">pressed</span><span class="chip-h">#045041</span></div>
+  </div>
+</div>
+
+<!-- 05 SECONDARY BUTTON -->
+<div class="sec" id="s05">
+  <div class="sec-row"><span class="sec-no">05</span><h2 class="sec-h2">Secondary Button</h2></div>
+  <p class="sec-desc">padding: 8px 16px · radius: 1000px · Yellow 500→700→900</p>
+</div>
+<div class="card">
+  <div class="row"><div class="row-lbl">States</div>
+    <div class="row-i">
+      <div class="col"><button class="btn-s btn-s-d">建立帳戶</button><code class="col-c">default · #FF9900</code></div>
+      <div class="col"><button class="btn-s btn-s-h">建立帳戶</button><code class="col-c">hover · #BB4D02</code></div>
+      <div class="col"><button class="btn-s btn-s-pr">建立帳戶</button><code class="col-c">pressed · #7C310B</code></div>
+      <div class="col"><button class="btn-s btn-s-di">建立帳戶</button><code class="col-c">disabled · 30%</code></div>
+    </div>
+  </div>
+  <div class="hr"></div>
+  <div class="row"><div class="row-lbl">With Icons</div>
+    <div class="row-i">
+      <button class="btn-s btn-s-d"><i data-lucide="user"></i>Apple 登入</button>
+      <button class="btn-s btn-s-d"><i data-lucide="search"></i>Google 登入</button>
+      <button class="btn-s btn-s-d"><i data-lucide="download"></i>下載報告</button>
+      <button class="btn-s btn-s-d"><i data-lucide="send"></i>分享</button>
+    </div>
+  </div>
+  <div class="chips">
+    <div class="chip"><div class="chip-dot" style="background:#ff9900"></div><span class="chip-n">default</span><span class="chip-h">#FF9900</span></div>
+    <div class="chip"><div class="chip-dot" style="background:#bb4d02"></div><span class="chip-n">hover</span><span class="chip-h">#BB4D02</span></div>
+    <div class="chip"><div class="chip-dot" style="background:#7c310b"></div><span class="chip-n">pressed</span><span class="chip-h">#7C310B</span></div>
+  </div>
+</div>
+
+<!-- 06 OUTLINE BUTTON -->
+<div class="sec" id="s06">
+  <div class="sec-row"><span class="sec-no">06</span><h2 class="sec-h2">Outline Button</h2></div>
+  <p class="sec-desc">padding: 6px 14px (補償 2px border = 視覺 8px 16px) · radius: 1000px</p>
+</div>
+<div class="card">
+  <div class="row"><div class="row-lbl">Outline Primary · Green-600 Border</div>
+    <div class="row-i">
+      <div class="col"><button class="btn-op">登入帳號</button><code class="col-c">default</code></div>
+      <div class="col"><button class="btn-op btn-op-h">查看詳情</button><code class="col-c">hover · green-50</code></div>
+      <div class="col"><button class="btn-op btn-op-di">登入</button><code class="col-c">disabled</code></div>
+    </div>
+  </div>
+  <div class="hr"></div>
+  <div class="row"><div class="row-lbl">Outline Secondary · Yellow-600 Border</div>
+    <div class="row-i">
+      <div class="col"><button class="btn-os">跳過</button><code class="col-c">default</code></div>
+      <div class="col"><button class="btn-os">稍後再說</button><code class="col-c">hover ↑</code></div>
+      <div class="col"><button class="btn-os btn-os-di">跳過</button><code class="col-c">disabled</code></div>
+    </div>
+  </div>
+  <div class="chips">
+    <div class="chip"><div class="chip-dot" style="background:#00b287"></div><span class="chip-n">primary/border</span><span class="chip-h">#00B287</span></div>
+    <div class="chip"><div class="chip-dot" style="background:#ebfef6"></div><span class="chip-n">primary/hover-bg</span><span class="chip-h">#EBFEF6</span></div>
+    <div class="chip"><div class="chip-dot" style="background:#e27200"></div><span class="chip-n">secondary/border</span><span class="chip-h">#E27200</span></div>
+  </div>
+</div>
+
+<!-- 07 TEXT BUTTON -->
+<div class="sec" id="s07">
+  <div class="sec-row"><span class="sec-no">07</span><h2 class="sec-h2">Text Button</h2></div>
+  <p class="sec-desc">no bg · no border · padding: 4px 6px · font: 14px/700</p>
+</div>
+<div class="card">
+  <div class="row"><div class="row-lbl">Text Primary · Green-500</div>
+    <div class="row-i">
+      <div class="col"><button class="btn-tp">忘記密碼？</button><code class="col-c">default</code></div>
+      <div class="col"><button class="btn-tp btn-tp-h">忘記密碼？</button><code class="col-c">hover</code></div>
+      <div class="col"><button class="btn-tp">查看全部<i data-lucide="chevron-right"></i></button><code class="col-c">with icon</code></div>
+      <div class="col"><button class="btn-tp"><i data-lucide="refresh-cw"></i>重新計算</button><code class="col-c">with icon</code></div>
+      <div class="col"><button class="btn-tp btn-tp-di">查看</button><code class="col-c">disabled</code></div>
+    </div>
+  </div>
+  <div class="hr"></div>
+  <div class="row"><div class="row-lbl">Text Secondary · Gray-700</div>
+    <div class="row-i">
+      <div class="col"><button class="btn-ts">跳過</button><code class="col-c">default</code></div>
+      <div class="col"><button class="btn-ts"><i data-lucide="x"></i>取消</button><code class="col-c">with icon</code></div>
+      <div class="col"><button class="btn-ts btn-ts-di">稍後再說</button><code class="col-c">disabled</code></div>
+    </div>
+  </div>
+  <div class="chips">
+    <div class="chip"><div class="chip-dot" style="background:#0abf8f"></div><span class="chip-n">primary/default</span><span class="chip-h">#0ABF8F</span></div>
+    <div class="chip"><div class="chip-dot" style="background:#007c62"></div><span class="chip-n">primary/hover</span><span class="chip-h">#007C62</span></div>
+    <div class="chip"><div class="chip-dot" style="background:#4f4f4f"></div><span class="chip-n">secondary/default</span><span class="chip-h">#4F4F4F</span></div>
+  </div>
+</div>
+
+<!-- 08 ICON BUTTON -->
+<div class="sec" id="s08">
+  <div class="sec-row"><span class="sec-no">08</span><h2 class="sec-h2">Icon Button</h2></div>
+  <p class="sec-desc">size: 36px · radius: 1000px · Primary / Secondary / Tertiary</p>
+</div>
+<div class="card">
+  <div class="row"><div class="row-lbl">Primary · White + Gray Border · 36px</div>
+    <div class="row-i">
+      <div class="ib-w"><button class="ib ib-1"><i data-lucide="chevron-left"></i></button><span class="ib-lbl">back</span></div>
+      <div class="ib-w"><button class="ib ib-1"><i data-lucide="plus"></i></button><span class="ib-lbl">add</span></div>
+      <div class="ib-w"><button class="ib ib-1"><i data-lucide="x"></i></button><span class="ib-lbl">close</span></div>
+      <div class="ib-w"><button class="ib ib-1"><i data-lucide="search"></i></button><span class="ib-lbl">search</span></div>
+      <div class="ib-w"><button class="ib ib-1"><i data-lucide="bell"></i></button><span class="ib-lbl">bell</span></div>
+      <div class="ib-w"><button class="ib ib-1"><i data-lucide="more-horizontal"></i></button><span class="ib-lbl">more</span></div>
+      <div class="ib-w"><button class="ib ib-1"><i data-lucide="edit-2"></i></button><span class="ib-lbl">edit</span></div>
+      <div class="ib-w"><button class="ib ib-1"><i data-lucide="filter"></i></button><span class="ib-lbl">filter</span></div>
+      <div class="ib-w"><button class="ib ib-1"><i data-lucide="download"></i></button><span class="ib-lbl">export</span></div>
+      <div class="ib-w"><button class="ib ib-1"><i data-lucide="share-2"></i></button><span class="ib-lbl">share</span></div>
+      <div class="ib-w"><button class="ib ib-1"><i data-lucide="trash-2"></i></button><span class="ib-lbl">delete</span></div>
+      <div class="ib-w"><button class="ib ib-1"><i data-lucide="calendar"></i></button><span class="ib-lbl">date</span></div>
+      <div class="ib-w"><button class="ib ib-1"><i data-lucide="eye"></i></button><span class="ib-lbl">view</span></div>
+      <div class="ib-w"><button class="ib ib-1 ib-di"><i data-lucide="chevron-left"></i></button><span class="ib-lbl">disabled</span></div>
+    </div>
+  </div>
+  <div class="hr"></div>
+  <div class="row"><div class="row-lbl">Secondary · Green Fill · 36px</div>
+    <div class="row-i">
+      <div class="ib-w"><button class="ib ib-2"><i data-lucide="check"></i></button><span class="ib-lbl">confirm</span></div>
+      <div class="ib-w"><button class="ib ib-2"><i data-lucide="plus"></i></button><span class="ib-lbl">add</span></div>
+      <div class="ib-w"><button class="ib ib-2"><i data-lucide="arrow-right"></i></button><span class="ib-lbl">next</span></div>
+      <div class="ib-w"><button class="ib ib-2"><i data-lucide="target"></i></button><span class="ib-lbl">goal</span></div>
+      <div class="ib-w"><button class="ib ib-2"><i data-lucide="wallet"></i></button><span class="ib-lbl">wallet</span></div>
+      <div class="ib-w"><button class="ib ib-2"><i data-lucide="trending-up"></i></button><span class="ib-lbl">trend</span></div>
+      <div class="ib-w"><button class="ib ib-2 ib-lg"><i data-lucide="check"></i></button><span class="ib-lbl">44px</span></div>
+      <div class="ib-w"><button class="ib ib-2 ib-di"><i data-lucide="check"></i></button><span class="ib-lbl">disabled</span></div>
+    </div>
+  </div>
+  <div class="hr"></div>
+  <div class="row"><div class="row-lbl">Tertiary · Orange Fill · 36px</div>
+    <div class="row-i">
+      <div class="ib-w"><button class="ib ib-3"><i data-lucide="star"></i></button><span class="ib-lbl">star</span></div>
+      <div class="ib-w"><button class="ib ib-3"><i data-lucide="bell"></i></button><span class="ib-lbl">notif</span></div>
+      <div class="ib-w"><button class="ib ib-3"><i data-lucide="heart"></i></button><span class="ib-lbl">heart</span></div>
+      <div class="ib-w"><button class="ib ib-3"><i data-lucide="user"></i></button><span class="ib-lbl">user</span></div>
+      <div class="ib-w"><button class="ib ib-3 ib-lg"><i data-lucide="trending-up"></i></button><span class="ib-lbl">44px</span></div>
+      <div class="ib-w"><button class="ib ib-3 ib-di"><i data-lucide="star"></i></button><span class="ib-lbl">disabled</span></div>
+    </div>
+  </div>
+  <div class="chips">
+    <div class="chip"><div class="chip-dot" style="background:#fff;border:1px solid #e7e7e7"></div><span class="chip-n">primary/default</span><span class="chip-h">#FFFFFF</span></div>
+    <div class="chip"><div class="chip-dot" style="background:#0abf8f"></div><span class="chip-n">secondary/default</span><span class="chip-h">#0ABF8F</span></div>
+    <div class="chip"><div class="chip-dot" style="background:#ff9900"></div><span class="chip-n">tertiary/default</span><span class="chip-h">#FF9900</span></div>
+    <div class="chip"><div class="chip-dot" style="background:#e7e7e7"></div><span class="chip-n">size</span><span class="chip-h">36 / 32 / 44px</span></div>
+  </div>
+</div>
+
+<!-- 09 LABEL -->
+<div class="sec" id="s09">
+  <div class="sec-row"><span class="sec-no">09</span><h2 class="sec-h2">Label / Badge</h2></div>
+  <p class="sec-desc">sm: 2px 8px · md: 4px 10px · radius: 1000px · font: 10–11px/700</p>
+</div>
+<div class="card">
+  <div class="row"><div class="row-lbl">Dark Labels · White Text</div>
+    <div class="row-i">
+      <div class="col"><span class="lbl lbl-md lbl-gd"><i data-lucide="check"></i>Green</span><code class="col-c">green-500</code></div>
+      <div class="col"><span class="lbl lbl-md lbl-yd"><i data-lucide="star"></i>Yellow</span><code class="col-c">yellow-500</code></div>
+      <div class="col"><span class="lbl lbl-md lbl-bd"><i data-lucide="info"></i>Blue</span><code class="col-c">blue-500</code></div>
+      <div class="col"><span class="lbl lbl-md lbl-pd"><i data-lucide="bookmark"></i>Purple</span><code class="col-c">purple-500</code></div>
+      <div class="col"><span class="lbl lbl-md lbl-rd"><i data-lucide="alert-circle"></i>Red</span><code class="col-c">error-500</code></div>
+      <div class="col"><span class="lbl lbl-md lbl-grl">Gray</span><code class="col-c">gray-500</code></div>
+    </div>
+  </div>
+  <div class="hr"></div>
+  <div class="row"><div class="row-lbl">Light Labels · Colored Text</div>
+    <div class="row-i">
+      <div class="col"><span class="lbl lbl-md lbl-gl"><i data-lucide="trending-up"></i>消費提高</span><code class="col-c">green-100/600</code></div>
+      <div class="col"><span class="lbl lbl-md lbl-yl"><i data-lucide="alert-circle"></i>接近上限</span><code class="col-c">yellow-100/600</code></div>
+      <div class="col"><span class="lbl lbl-md lbl-bl"><i data-lucide="check"></i>已分析</span><code class="col-c">blue-100/500</code></div>
+      <div class="col"><span class="lbl lbl-md lbl-pl"><i data-lucide="star"></i>投資類</span><code class="col-c">purple-100/500</code></div>
+      <div class="col"><span class="lbl lbl-md lbl-rl"><i data-lucide="x-circle"></i>已超支</span><code class="col-c">error-100/500</code></div>
+    </div>
+  </div>
+  <div class="hr"></div>
+  <div class="row"><div class="row-lbl">SM Size · 2px 8px</div>
+    <div class="row-i">
+      <span class="lbl lbl-sm lbl-gd">省錢達人</span>
+      <span class="lbl lbl-sm lbl-yl"><i data-lucide="alert-circle"></i>接近上限</span>
+      <span class="lbl lbl-sm lbl-rl">超支</span>
+      <span class="lbl lbl-sm lbl-bd">本月最高</span>
+      <span class="lbl lbl-sm lbl-pl">投資類</span>
+    </div>
+  </div>
+  <div class="chips">
+    <div class="chip"><div class="chip-dot" style="background:#e7e7e7"></div><span class="chip-n">sm padding</span><span class="chip-h">2px 8px</span></div>
+    <div class="chip"><div class="chip-dot" style="background:#e7e7e7"></div><span class="chip-n">md padding</span><span class="chip-h">4px 10px</span></div>
+    <div class="chip"><div class="chip-dot" style="background:#e7e7e7"></div><span class="chip-n">radius</span><span class="chip-h">1000px</span></div>
+  </div>
+</div>
+
+<!-- 10 NAV TAB -->
+<div class="sec" id="s10">
+  <div class="sec-row"><span class="sec-no">10</span><h2 class="sec-h2">Nav Tab Options</h2></div>
+  <p class="sec-desc">Pill segment control · click to switch</p>
+</div>
+<div class="card">
+  <div class="row"><div class="row-lbl">2 Tabs</div>
+    <div class="tab-track" id="t2"><button class="tab-btn on" onclick="tab('t2',this)">分析</button><button class="tab-btn" onclick="tab('t2',this)">預算</button></div>
+  </div>
+  <div class="hr"></div>
+  <div class="row"><div class="row-lbl">3 Tabs</div>
+    <div class="tab-track" id="t3"><button class="tab-btn on" onclick="tab('t3',this)">本月</button><button class="tab-btn" onclick="tab('t3',this)">上月</button><button class="tab-btn" onclick="tab('t3',this)">本季</button></div>
+  </div>
+  <div class="hr"></div>
+  <div class="row"><div class="row-lbl">4 Tabs</div>
+    <div class="tab-track" id="t4"><button class="tab-btn on" onclick="tab('t4',this)">週</button><button class="tab-btn" onclick="tab('t4',this)">月</button><button class="tab-btn" onclick="tab('t4',this)">季</button><button class="tab-btn" onclick="tab('t4',this)">年</button></div>
+  </div>
+</div>
+
+<!-- 11 BOTTOM NAV -->
+<div class="sec" id="s11">
+  <div class="sec-row"><span class="sec-no">11</span><h2 class="sec-h2">Bottom Navigation</h2></div>
+  <p class="sec-desc">active: green-500 · inactive: gray-300 · Lucide icons</p>
+</div>
+<div class="card">
+  <div style="max-width:400px">
+    <div style="background:var(--gray-50);border-radius:16px 16px 0 0;padding:20px 24px;text-align:center;font-size:13px;color:var(--gray-300)">App Content Area</div>
+    <div class="bnav" id="bn1">
+      <button class="bn-item on" onclick="nav('bn1',this)"><span class="bn-ico"><i data-lucide="home"></i></span><span class="bn-lbl">首頁</span><div class="bn-dot"></div></button>
+      <button class="bn-item" onclick="nav('bn1',this)"><span class="bn-ico"><i data-lucide="bar-chart-2"></i></span><span class="bn-lbl">分析</span></button>
+      <button class="bn-item" onclick="nav('bn1',this)"><span class="bn-ico"><i data-lucide="target"></i></span><span class="bn-lbl">目標</span></button>
+      <button class="bn-item" onclick="nav('bn1',this)"><span class="bn-ico"><i data-lucide="clipboard-list"></i></span><span class="bn-lbl">明細</span></button>
+      <button class="bn-item" onclick="nav('bn1',this)"><span class="bn-ico"><i data-lucide="settings"></i></span><span class="bn-lbl">設定</span></button>
+    </div>
+  </div>
+  <div class="chips" style="margin-top:20px">
+    <div class="chip"><div class="chip-dot" style="background:#0abf8f"></div><span class="chip-n">active</span><span class="chip-h">#0ABF8F</span></div>
+    <div class="chip"><div class="chip-dot" style="background:#b0b0b0"></div><span class="chip-n">inactive</span><span class="chip-h">#B0B0B0</span></div>
+  </div>
+</div>
+
+<!-- 12 INPUTS -->
+<div class="sec" id="s12">
+  <div class="sec-row"><span class="sec-no">12</span><h2 class="sec-h2">Inputs</h2></div>
+  <p class="sec-desc">padding: 10px 14px · radius: 12px (radius_s) · 4 states</p>
+</div>
+<div class="card">
+  <div style="display:flex;gap:32px;flex-wrap:wrap">
+    <div style="flex:1;min-width:280px;display:flex;flex-direction:column;gap:12px">
+      <div class="row-lbl">Word Input</div>
+      <div><div style="font-size:9px;color:var(--gray-300);margin-bottom:5px">Default · gray-50 / gray-950</div>
+        <div class="inp inp-d"><i data-lucide="user" style="color:var(--gray-400)"></i><span class="inp-ph">輸入帳號或 Email</span></div></div>
+      <div><div style="font-size:9px;color:var(--gray-300);margin-bottom:5px">Focus · gray-100 / 2px border</div>
+        <div class="inp inp-f"><i data-lucide="user" style="color:var(--gray-400)"></i><span class="inp-ph">輸入帳號…</span></div></div>
+      <div><div style="font-size:9px;color:var(--gray-300);margin-bottom:5px">Entered · green-400 border</div>
+        <div class="inp inp-e"><i data-lucide="user" style="color:var(--gray-400)"></i><span class="inp-val" style="flex:1">eily@ledger.app</span><i data-lucide="check-circle" style="color:var(--green-500);width:15px;height:15px"></i></div></div>
+      <div><div style="font-size:9px;color:var(--gray-300);margin-bottom:5px">Error · error-500 border / error-50 bg</div>
+        <div class="inp inp-er"><i data-lucide="alert-circle" style="color:var(--error-500)"></i><span class="inp-val" style="color:var(--error-500);flex:1">格式錯誤，請重新輸入</span><i data-lucide="x-circle" style="color:var(--error-500);width:15px;height:15px"></i></div></div>
+    </div>
+    <div style="flex:1;min-width:240px;display:flex;flex-direction:column;gap:12px">
+      <div class="row-lbl">Amount Input</div>
+      <div><div style="font-size:9px;color:var(--gray-300);margin-bottom:5px">Default · green-300 border</div>
+        <div class="amt-inp" style="border-color:var(--green-300);background:#fff"><i data-lucide="wallet" style="color:var(--green-400)"></i><span class="amt-v">50,000</span><span class="amt-c">NTD</span></div></div>
+      <div><div style="font-size:9px;color:var(--gray-300);margin-bottom:5px">Focus · green-50 bg</div>
+        <div class="amt-inp" style="border-color:var(--green-300);background:var(--green-50)"><i data-lucide="wallet" style="color:var(--green-400)"></i><span class="amt-v">50,000</span><span class="amt-c">NTD</span></div></div>
+      <div><div style="font-size:9px;color:var(--gray-300);margin-bottom:5px">Entered · green-400 border</div>
+        <div class="amt-inp" style="border-color:var(--green-400);background:#fff"><i data-lucide="wallet" style="color:var(--green-500)"></i><span class="amt-v">50,000</span><span class="amt-c">NTD</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 13 PROGRESS -->
+<div class="sec" id="s13">
+  <div class="sec-row"><span class="sec-no">13</span><h2 class="sec-h2">Progress Bar</h2></div>
+  <p class="sec-desc">height: 6px · radius: 3px · 6 variants + 631 bar</p>
+</div>
+<div class="card">
+  <div style="max-width:440px">
+    <div class="prog-w"><div class="prog-hd"><span class="prog-l" style="color:var(--green-600)"><i data-lucide="coffee"></i>餐飲 · Green</span><span class="prog-p">72%</span></div><div class="prog-t" style="background:var(--green-100)"><div class="prog-f" style="width:72%;background:var(--green-600)"></div></div></div>
+    <div class="prog-w"><div class="prog-hd"><span class="prog-l" style="color:var(--yellow-500)"><i data-lucide="shopping-bag"></i>購物 · Yellow</span><span class="prog-p">55%</span></div><div class="prog-t" style="background:var(--yellow-100)"><div class="prog-f" style="width:55%;background:var(--yellow-500)"></div></div></div>
+    <div class="prog-w"><div class="prog-hd"><span class="prog-l" style="color:var(--blue-500)"><i data-lucide="car"></i>交通 · Blue</span><span class="prog-p">88%</span></div><div class="prog-t" style="background:#daedff"><div class="prog-f" style="width:88%;background:var(--blue-500)"></div></div></div>
+    <div class="prog-w"><div class="prog-hd"><span class="prog-l" style="color:var(--purple-500)"><i data-lucide="trending-up"></i>投資 · Purple</span><span class="prog-p">33%</span></div><div class="prog-t" style="background:#e0e7ff"><div class="prog-f" style="width:33%;background:var(--purple-500)"></div></div></div>
+    <div class="prog-w"><div class="prog-hd"><span class="prog-l" style="color:var(--gray-500)"><i data-lucide="star"></i>娛樂 · Gray</span><span class="prog-p">45%</span></div><div class="prog-t" style="background:var(--gray-100)"><div class="prog-f" style="width:45%;background:var(--gray-500)"></div></div></div>
+    <div class="prog-w"><div class="prog-hd"><span class="prog-l" style="color:var(--error-500)"><i data-lucide="alert-circle"></i>超支 · Error</span><span class="prog-p">100%</span></div><div class="prog-t" style="background:var(--error-100)"><div class="prog-f" style="width:100%;background:var(--error-500)"></div></div></div>
+  </div>
+  <div class="hr"></div>
+  <div class="row-lbl">Proportion Bar · 631 法則</div>
+  <div style="max-width:440px">
+    <div class="prop-b"><div style="width:60%;background:var(--yellow-500)"></div><div style="width:30%;background:var(--green-500)"></div><div style="width:10%;background:var(--purple-500)"></div></div>
+    <div class="prop-le">
+      <div class="prop-li"><i data-lucide="shopping-bag" style="color:var(--yellow-500)"></i>支出 60%</div>
+      <div class="prop-li"><i data-lucide="wallet" style="color:var(--green-500)"></i>儲蓄 30%</div>
+      <div class="prop-li"><i data-lucide="trending-up" style="color:var(--purple-500)"></i>投資 10%</div>
+    </div>
+  </div>
+</div>
+
+<!-- 14 NOTIFICATIONS -->
+<div class="sec" id="s14">
+  <div class="sec-row"><span class="sec-no">14</span><h2 class="sec-h2">Notifications</h2></div>
+  <p class="sec-desc">5 states · radius: 14px · Lucide icons</p>
+</div>
+<div class="card">
+  <div style="max-width:440px">
+    <div class="notif" style="background:#fff;border-color:var(--gray-100)"><span class="notif-i" style="color:var(--gray-950)"><i data-lucide="bell"></i></span><div class="notif-b"><div class="notif-t" style="color:var(--gray-950)">消費提醒</div><div class="notif-d">你本月的餐飲支出已達預算 80%，請注意控制支出。</div></div><span class="notif-a">剛剛</span></div>
+    <div class="notif" style="background:var(--green-50);border-color:var(--green-200)"><span class="notif-i" style="color:var(--green-600)"><i data-lucide="info"></i></span><div class="notif-b"><div class="notif-t" style="color:var(--green-600)">理財建議</div><div class="notif-d">根據消費習慣，建議調整餐飲預算比例至 25%。</div></div><span class="notif-a">剛剛</span></div>
+    <div class="notif" style="background:var(--yellow-100);border-color:var(--yellow-200)"><span class="notif-i" style="color:var(--yellow-600)"><i data-lucide="alert-circle"></i></span><div class="notif-b"><div class="notif-t" style="color:var(--yellow-600)">預算警示</div><div class="notif-d">連續 3 個月支出上漲，建議本月檢視消費習慣。</div></div><span class="notif-a">剛剛</span></div>
+    <div class="notif" style="background:var(--error-100);border-color:var(--error-200)"><span class="notif-i" style="color:var(--error-500)"><i data-lucide="x-circle"></i></span><div class="notif-b"><div class="notif-t" style="color:var(--error-500)">超出預算</div><div class="notif-d">本月娛樂支出已超出預算 NT$2,500，請即時調整。</div></div><span class="notif-a">剛剛</span></div>
+    <div class="notif" style="background:var(--success-50);border-color:#bff3cc;margin-bottom:0"><span class="notif-i" style="color:var(--success-500)"><i data-lucide="check-circle"></i></span><div class="notif-b"><div class="notif-t" style="color:var(--success-500)">目標達成！</div><div class="notif-d">恭喜！本月成功存入旅遊基金 NT$5,000！繼續加油！</div></div><span class="notif-a">剛剛</span></div>
+  </div>
+</div>
+
+<!-- 15 REAL USAGE -->
+<div class="sec" id="s15">
+  <div class="sec-row"><span class="sec-no">15</span><h2 class="sec-h2">Real Usage · 完整場景</h2></div>
+  <p class="sec-desc">正確 padding / radius 的真實元件組合示範</p>
+</div>
+<div class="card">
+  <div class="use-g">
+    <div>
+      <div class="use-l">Onboarding 登入</div>
+      <div class="ob-c">
+        <div class="tc"><div style="font-size:22px;font-weight:900">歡迎回來 👋</div><div style="font-size:13px;color:var(--gray-400);margin-top:4px">請登入你的帳號</div></div>
+        <button class="btn-p btn-p-d full"><i data-lucide="arrow-right"></i>立即開始</button>
+        <button class="btn-op full">我已有帳號，登入</button>
+        <div class="sep"><div class="sep-l"></div><span class="sep-t">快速登入</span><div class="sep-l"></div></div>
+        <button class="btn-s btn-s-d full"><i data-lucide="user"></i>Apple 登入</button>
+        <div class="tc"><button class="btn-tp">忘記密碼？<i data-lucide="chevron-right"></i></button></div>
+      </div>
+    </div>
+    <div>
+      <div class="use-l">首頁 + 底部導覽</div>
+      <div style="background:var(--gray-50);border-radius:16px 16px 0 0;padding:20px 20px 16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div><div style="font-size:11px;color:var(--gray-400)">本月可支配</div><div style="font-size:28px;font-weight:900">$4,320</div></div>
+          <div style="display:flex;gap:6px">
+            <button class="ib ib-1 ib-sm"><i data-lucide="bell"></i></button>
+            <button class="ib ib-1 ib-sm"><i data-lucide="settings"></i></button>
+          </div>
+        </div>
+        <div class="tab-track" id="t-home"><button class="tab-btn on" onclick="tab('t-home',this)">本月</button><button class="tab-btn" onclick="tab('t-home',this)">上月</button></div>
+        <div style="margin-top:12px;height:6px;background:var(--green-100);border-radius:3px"><div style="height:100%;width:72%;background:var(--green-500);border-radius:3px"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--gray-400);margin-top:5px">
+          <span style="display:flex;align-items:center;gap:4px"><i data-lucide="trending-down" style="width:10px;height:10px;color:var(--error-500)"></i>支出 $27,800</span>
+          <span style="display:flex;align-items:center;gap:4px"><i data-lucide="trending-up" style="width:10px;height:10px;color:var(--green-500)"></i>儲蓄 $8,400</span>
+        </div>
+      </div>
+      <div class="bnav" id="bn2">
+        <button class="bn-item on" onclick="nav('bn2',this)"><span class="bn-ico"><i data-lucide="home"></i></span><span class="bn-lbl">首頁</span><div class="bn-dot"></div></button>
+        <button class="bn-item" onclick="nav('bn2',this)"><span class="bn-ico"><i data-lucide="bar-chart-2"></i></span><span class="bn-lbl">分析</span></button>
+        <button class="bn-item" onclick="nav('bn2',this)"><span class="bn-ico"><i data-lucide="target"></i></span><span class="bn-lbl">目標</span></button>
+        <button class="bn-item" onclick="nav('bn2',this)"><span class="bn-ico"><i data-lucide="clipboard-list"></i></span><span class="bn-lbl">明細</span></button>
+        <button class="bn-item" onclick="nav('bn2',this)"><span class="bn-ico"><i data-lucide="settings"></i></span><span class="bn-lbl">設定</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<div style="border-top:1px solid var(--gray-100);padding-top:24px;margin-top:32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+  <span style="font-size:13px;font-weight:700">Ledger <span style="color:var(--green-500)">Design System</span></span>
+  <span style="font-size:10px;color:var(--gray-300);font-family:monospace">lucide@0.454.0 via unpkg · padding fixed · v2.0</span>
+  <span style="font-size:10px;color:var(--gray-300)">April 2026</span>
+</div>
+
+</div><!-- /main -->
+
+<script>
+  // Lucide icons init
+  lucide.createIcons();
+
+  function go(id) { document.getElementById(id).scrollIntoView({ behavior:'smooth' }); }
+
+  function tab(trackId, btn) {
+    document.getElementById(trackId).querySelectorAll('.tab-btn').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+  }
+
+  function nav(navId, btn) {
+    const n = document.getElementById(navId);
+    n.querySelectorAll('.bn-item').forEach(b => {
+      b.classList.remove('on');
+      const d = b.querySelector('.bn-dot');
+      if (d) d.remove();
+    });
+    btn.classList.add('on');
+    const dot = document.createElement('div');
+    dot.className = 'bn-dot';
+    btn.appendChild(dot);
+  }
+</script>
+</body>
+</html>
